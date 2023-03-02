@@ -88,16 +88,16 @@ func (e *EastMoneyClient) login(userId string, pwd string) error {
 			return errors.New("验证码识别出错")
 		}
 
-		secInfo, err := e.getSecurityInfo(verifyCode)
-		if err != nil {
-			return errors.New("验证码安全加密识别失败: " + err.Error())
-		}
+		// secInfo, err := e.getSecurityInfo(verifyCode)
+		// if err != nil {
+		// 	return errors.New("验证码安全加密识别失败: " + err.Error())
+		// }
 		return e.doLogin(loginReq{
-			userId:       userId,
-			password:     pwd,
-			verifyCode:   verifyCode,
-			randNumber:   randNumber.String(),
-			securityInfo: secInfo,
+			UserId:     userId,
+			Password:   pwd,
+			VerifyCode: verifyCode,
+			RandNumber: randNumber.String(),
+			// SecurityInfo: secInfo,
 		})
 	}
 	return util.Retry(5, loginFn)
@@ -105,27 +105,30 @@ func (e *EastMoneyClient) login(userId string, pwd string) error {
 }
 
 type loginReq struct {
-	userId       string
-	password     string
-	verifyCode   string
-	randNumber   string
-	securityInfo string
+	UserId       string
+	Password     string
+	VerifyCode   string
+	RandNumber   string
+	SecurityInfo string
 }
 
 func (e *EastMoneyClient) doLogin(param loginReq) error {
 	var formData = make(url.Values, 0)
-	formData.Add("userId", param.userId)
-	formData.Add("randNumber", param.randNumber)
-	formData.Add("identifyCode", param.verifyCode)
-	formData.Add("secInfo", param.securityInfo)
-	formData.Add("password", encrypt(param.password))
-
-	formData.Add("duration", "15")
+	formData.Add("userId", param.UserId)
+	formData.Add("randNumber", param.RandNumber)
+	formData.Add("identifyCode", param.VerifyCode)
+	formData.Add("secInfo", "")
+	formData.Add("password", encrypt(param.Password))
+	formData.Add("duration", "30")
 	formData.Add("type", "Z")
 	formData.Add("authCode", "")
 
+	str, _ := json.Marshal(formData)
+	fmt.Println(string(str))
+	// return nil
+
 	body := strings.NewReader(formData.Encode())
-	req, _ := createRequestWithBaseHeader("POST", baseUrl+"/Login/Authentication", body)
+	req, _ := createRequestWithBaseHeader("POST", baseUrl+"/Login/Authentication?validatekey=", body)
 
 	resp, err := e.c.Do(req)
 	if err != nil {
@@ -353,9 +356,9 @@ func createRequestWithBaseHeader(method string, url string, body io.Reader) (*ht
 	if err != nil {
 		return nil, err
 	}
-	request.Header.Add("sec-ch-ua-platform", "Windows")
+	request.Header.Add("sec-ch-ua-platform", "Linux")
 	request.Header.Add("Content-Type", "application/x-www-form-urlencoded")
-	request.Header.Add("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/109.0.0.0 Safari/537.36")
+	request.Header.Add("User-Agent", "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/108.0.0.0 Safari/537.36")
 	return request, nil
 }
 

@@ -6,7 +6,7 @@ import (
 	"github.com/spf13/viper"
 )
 
-var defaultConfigFile = "./config.yaml"
+var defaultConfigFile = "./configs/config.yaml"
 
 type Config struct {
 	User  UserConfig
