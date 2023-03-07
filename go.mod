@@ -1,4 +1,4 @@
-module github.com/wmo-v/eastmoneyapi
+module github.com/yzlq99/eastmoneyapi
 
 go 1.17
 
