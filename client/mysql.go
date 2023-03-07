@@ -18,7 +18,7 @@ func GetMysqlClient() *gorm.DB {
 	}
 
 	initMysqlOnce.Do(func() {
-		conf := config.GetConfg().Mysql
+		conf := config.GetConfig().Mysql
 		dsn := fmt.Sprintf(
 			"%s:%s@tcp(%s:%s)/%s?charset=utf8mb4&parseTime=True&loc=Local",
 			conf.User,

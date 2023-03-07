@@ -30,10 +30,17 @@ func main() {
 	// z.Start()
 
 	c := client.NewEastMoneyClient()
-	res, err := c.GetStockList()
-	if err != nil {
-		panic(err)
-	}
-	str, _ := json.Marshal(res)
-	fmt.Println(string(str))
+
+	go func() {
+		for {
+			time.Sleep(time.Second * 2)
+			res, err := c.GetStockList()
+			if err != nil {
+				panic(err)
+			}
+			str, _ := json.Marshal(res)
+			fmt.Println(string(str))
+		}
+	}()
+	select {}
 }

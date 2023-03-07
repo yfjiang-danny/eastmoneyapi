@@ -13,12 +13,13 @@ import (
 	"encoding/pem"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"log"
 	math_rand "math/rand"
+	"mime/multipart"
 	"net/http"
 	"net/http/cookiejar"
 	"net/url"
-	"os"
 	"strconv"
 	"strings"
 	"sync"
@@ -52,7 +53,7 @@ func NewEastMoneyClient() *EastMoneyClient {
 			},
 			closeCh: make(chan struct{}, 1),
 		}
-		if err := client.login(config.GetConfg().User.Account, config.GetConfg().User.Password); err != nil {
+		if err := client.login(config.GetConfig().User.Account, config.GetConfig().User.Password); err != nil {
 			// 第一次登录失败，说明账号密码可能是错误的，直接panic
 			panic("账号登录失败," + err.Error())
 		}
@@ -63,7 +64,7 @@ func NewEastMoneyClient() *EastMoneyClient {
 				case <-client.closeCh:
 					return
 				default:
-					client.login(config.GetConfg().User.Account, config.GetConfg().User.Password)
+					client.login(config.GetConfig().User.Account, config.GetConfig().User.Password)
 				}
 			}
 		}()
@@ -76,15 +77,13 @@ func NewEastMoneyClient() *EastMoneyClient {
 func (e *EastMoneyClient) login(userId string, pwd string) error {
 	var loginFn = func() error {
 		randNumber := decimal.NewFromFloat(math_rand.Float64())
-		if err := getVeriyCodeImg(randNumber.String()); err != nil {
+		verifyCode, err := e.getVerifyCode(randNumber.String())
+		if err != nil {
 			return errors.New("获取验证码失败: " + err.Error())
 		}
-		verifyCode, err := util.ImgOCR(verifyCodeImgFile)
-		if err != nil {
-			return errors.New("验证码识别失败: " + err.Error())
-		}
+
 		// 东方财富的验证码全是数字，如果识别出字母说明出错,不需要再往下执行了
-		if _, err := strconv.Atoi(verifyCode); err != nil {
+		if _, err := strconv.Atoi(verifyCode); err != nil || len(verifyCode) != 4 {
 			return errors.New("验证码识别出错")
 		}
 
@@ -379,21 +378,48 @@ func (e *EastMoneyClient) getSecurityInfo(code string) (string, error) {
 }
 
 // 获取验证码图片, 需要传入一个数字绑定图片
-func getVeriyCodeImg(randNum string) error {
-	resp, err := http.Get(baseUrl + "/Login/YZM?randNum=" + randNum)
+func (e *EastMoneyClient) getVerifyCode(randNum string) (string, error) {
+	resp, err := e.c.Get(baseUrl + "/Login/YZM?randNum=" + randNum)
 	if err != nil {
-		return errors.New(err.Error())
+		return "", errors.New(err.Error())
 	}
 	defer resp.Body.Close()
-	f, err := os.OpenFile(verifyCodeImgFile, os.O_CREATE|os.O_RDWR, 0777)
+
+	requestBody := &bytes.Buffer{}
+	writer := multipart.NewWriter(requestBody)
+	part, err := writer.CreateFormFile("image", "verify_image")
 	if err != nil {
-		return errors.New(err.Error())
+		return "", errors.New("Failed to create form file: " + err.Error())
 	}
-	if _, err := io.Copy(f, resp.Body); err != nil {
-		return errors.New(err.Error())
+	_, err = io.Copy(part, resp.Body)
+	if err != nil {
+		return "", errors.New("Failed to copy file data: " + err.Error())
 	}
-	return nil
+	err = writer.Close()
+	if err != nil {
+		return "", errors.New("Failed to close writer: " + err.Error())
+	}
+
+	apiURL := fmt.Sprintf("%s/ocr/file", config.GetConfig().OCRHost)
+	request, err := http.NewRequest("POST", apiURL, requestBody)
+	if err != nil {
+		return "", errors.New("Failed to create request: " + err.Error())
+	}
+	request.Header.Set("Content-Type", writer.FormDataContentType())
+
+	response, err := e.c.Do(request)
+	if err != nil {
+		return "", errors.New("Failed to send request: " + err.Error())
+	}
+	defer response.Body.Close()
+
+	responseBytes, err := ioutil.ReadAll(response.Body)
+	if err != nil {
+		return "", errors.New("Failed to read response body: " + err.Error())
+	}
+	return string(responseBytes), nil
 }
+
 func bindJson(r io.ReadCloser, t interface{}) error {
 	defer r.Close()
 	var decoder = json.NewDecoder(r)

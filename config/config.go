@@ -9,8 +9,9 @@ import (
 var defaultConfigFile = "./configs/config.yaml"
 
 type Config struct {
-	User  UserConfig
-	Mysql MysqlConfig
+	User    UserConfig
+	OCRHost string
+	Mysql   MysqlConfig
 }
 type UserConfig struct {
 	Account  string
@@ -27,7 +28,7 @@ type MysqlConfig struct {
 var conf *Config
 var once sync.Once
 
-func GetConfg() *Config {
+func GetConfig() *Config {
 	once.Do(func() {
 		viper.SetConfigFile(defaultConfigFile)
 		if err := viper.ReadInConfig(); err != nil {
