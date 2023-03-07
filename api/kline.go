@@ -8,8 +8,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/wmo-v/eastmoneyapi/model"
-	"github.com/wmo-v/eastmoneyapi/util"
+	"github.com/yzlq99/eastmoneyapi/model"
+	"github.com/yzlq99/eastmoneyapi/util"
 
 	"github.com/shopspring/decimal"
 )

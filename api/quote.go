@@ -5,8 +5,8 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/wmo-v/eastmoneyapi/model"
-	"github.com/wmo-v/eastmoneyapi/util"
+	"github.com/yzlq99/eastmoneyapi/model"
+	"github.com/yzlq99/eastmoneyapi/util"
 )
 
 // GetQuote 获取最新的行情数据
