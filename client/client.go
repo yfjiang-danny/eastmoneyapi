@@ -5,9 +5,6 @@ import (
 	"crypto/rand"
 	"crypto/rsa"
 	"crypto/x509"
-	"eastmoneyapi/config"
-	"eastmoneyapi/model"
-	"eastmoneyapi/util"
 	"encoding/base64"
 	"encoding/json"
 	"encoding/pem"
@@ -25,35 +22,48 @@ import (
 	"sync"
 	"time"
 
+	"github.com/wmo-v/eastmoneyapi/model"
+	"github.com/wmo-v/eastmoneyapi/util"
+
 	"github.com/PuerkitoBio/goquery"
 	"github.com/pkg/errors"
 	"github.com/shopspring/decimal"
 	logrus "github.com/sirupsen/logrus"
 )
 
-var verifyCodeImgFile = "./verifyCode.jpg"
 var baseUrl = "https://jywg.18.cn"
 
-var client *EastMoneyClient
+var client *eastMoneyClient
 var intiClientOnce sync.Once
 
-type EastMoneyClient struct {
-	c           *http.Client
+type eastMoneyClient struct {
+	cli         *http.Client
+	config      EastMoneyClientConfig
 	closeCh     chan struct{}
 	validateKey string
 }
 
-func NewEastMoneyClient() *EastMoneyClient {
+type EastMoneyClientConfig struct {
+	// user info
+	Account  string
+	Password string
+
+	// ocr host
+	OCRHost string
+}
+
+func NewEastMoneyClient(c EastMoneyClientConfig) *eastMoneyClient {
 	intiClientOnce.Do(func() {
 		jar, _ := cookiejar.New(nil)
-		client = &EastMoneyClient{
-			c: &http.Client{
+		client = &eastMoneyClient{
+			cli: &http.Client{
 				Timeout: 3 * time.Second,
 				Jar:     jar,
 			},
+			config:  c,
 			closeCh: make(chan struct{}, 1),
 		}
-		if err := client.login(config.GetConfig().User.Account, config.GetConfig().User.Password); err != nil {
+		if err := client.login(); err != nil {
 			// 第一次登录失败，说明账号密码可能是错误的，直接panic
 			panic("账号登录失败," + err.Error())
 		}
@@ -64,7 +74,7 @@ func NewEastMoneyClient() *EastMoneyClient {
 				case <-client.closeCh:
 					return
 				default:
-					client.login(config.GetConfig().User.Account, config.GetConfig().User.Password)
+					client.login()
 				}
 			}
 		}()
@@ -74,7 +84,7 @@ func NewEastMoneyClient() *EastMoneyClient {
 }
 
 // login 登录接口
-func (e *EastMoneyClient) login(userId string, pwd string) error {
+func (e *eastMoneyClient) login() error {
 	var loginFn = func() error {
 		randNumber := decimal.NewFromFloat(math_rand.Float64())
 		verifyCode, err := e.getVerifyCode(randNumber.String())
@@ -92,8 +102,8 @@ func (e *EastMoneyClient) login(userId string, pwd string) error {
 		// 	return errors.New("验证码安全加密识别失败: " + err.Error())
 		// }
 		return e.doLogin(loginReq{
-			UserId:     userId,
-			Password:   pwd,
+			UserId:     e.config.Account,
+			Password:   e.config.Password,
 			VerifyCode: verifyCode,
 			RandNumber: randNumber.String(),
 			// SecurityInfo: secInfo,
@@ -111,7 +121,7 @@ type loginReq struct {
 	SecurityInfo string
 }
 
-func (e *EastMoneyClient) doLogin(param loginReq) error {
+func (e *eastMoneyClient) doLogin(param loginReq) error {
 	var formData = make(url.Values, 0)
 	formData.Add("userId", param.UserId)
 	formData.Add("randNumber", param.RandNumber)
@@ -122,14 +132,10 @@ func (e *EastMoneyClient) doLogin(param loginReq) error {
 	formData.Add("type", "Z")
 	formData.Add("authCode", "")
 
-	str, _ := json.Marshal(formData)
-	fmt.Println(string(str))
-	// return nil
-
 	body := strings.NewReader(formData.Encode())
 	req, _ := createRequestWithBaseHeader("POST", baseUrl+"/Login/Authentication?validatekey=", body)
 
-	resp, err := e.c.Do(req)
+	resp, err := e.cli.Do(req)
 	if err != nil {
 		return errors.New(err.Error())
 	}
@@ -150,9 +156,9 @@ func (e *EastMoneyClient) doLogin(param loginReq) error {
 }
 
 // 这个ValidateKey隐藏在html中，随机访问一个页面，解析出来即可
-func (e *EastMoneyClient) getValidateKey() error {
+func (e *eastMoneyClient) getValidateKey() error {
 	req, _ := createRequestWithBaseHeader("GET", baseUrl+"/Search/Position", nil)
-	resp, err := e.c.Do(req)
+	resp, err := e.cli.Do(req)
 	if err != nil {
 		return errors.New(err.Error())
 	}
@@ -177,7 +183,7 @@ func (e *EastMoneyClient) getValidateKey() error {
 }
 
 // SubmitTrade 提交订单交易
-func (e *EastMoneyClient) SubmitTrade(order model.TradeOrderForm) (string, error) {
+func (e *eastMoneyClient) SubmitTrade(order model.TradeOrderForm) (string, error) {
 	var formData = make(url.Values, 0)
 	formData.Add("stockCode", order.Code)
 	formData.Add("zqmc", order.Name)
@@ -196,7 +202,7 @@ func (e *EastMoneyClient) SubmitTrade(order model.TradeOrderForm) (string, error
 		baseUrl+"/Trade/SubmitTradeV2?validatekey="+e.validateKey,
 		strings.NewReader(formData.Encode()),
 	)
-	resp, err := e.c.Do(req)
+	resp, err := e.cli.Do(req)
 	if err != nil {
 		return "", errors.New(err.Error())
 	}
@@ -240,25 +246,25 @@ func (e *EastMoneyClient) SubmitTrade(order model.TradeOrderForm) (string, error
 }
 
 // GetOrdersList 获取当日的所有订单信息
-func (e *EastMoneyClient) GetOrdersList() ([]*model.Order, error) {
+func (e *eastMoneyClient) GetOrdersList() ([]*model.Order, error) {
 	return e.getOrders(baseUrl + "/Search/GetOrdersData?validatekey=" + e.validateKey)
 }
 
 // GetDealList 获取当日成交信息
-func (e *EastMoneyClient) GetDealList() ([]*model.Order, error) {
+func (e *eastMoneyClient) GetDealList() ([]*model.Order, error) {
 	return e.getOrders(baseUrl + "/Search/GetDealData?validatekey=" + e.validateKey)
 }
 
 // GetRevokeList 获取可撤单的订单信息
-func (e *EastMoneyClient) GetRevokeList() ([]*model.Order, error) {
+func (e *eastMoneyClient) GetRevokeList() ([]*model.Order, error) {
 	return e.getOrders(baseUrl + "/Trade/GetRevokeList?validatekey=" + e.validateKey)
 }
 
-func (e *EastMoneyClient) getOrders(u string) ([]*model.Order, error) {
+func (e *eastMoneyClient) getOrders(u string) ([]*model.Order, error) {
 	var form = make(url.Values, 0)
 	form.Add("qqhs", "100")
 	req, _ := createRequestWithBaseHeader("POST", u, strings.NewReader(form.Encode()))
-	resp, err := e.c.Do(req)
+	resp, err := e.cli.Do(req)
 	if err != nil {
 		return nil, err
 	}
@@ -276,7 +282,7 @@ func (e *EastMoneyClient) getOrders(u string) ([]*model.Order, error) {
 
 // RevokeOrders 撤单，支持批量撤单，但是不建议使用，返回一串的字符串，需要自行判断有没有撤单成功。
 // 格式为： 委托编号: 消息
-func (e *EastMoneyClient) RevokeOrders(list []*model.Order) (string, error) {
+func (e *eastMoneyClient) RevokeOrders(list []*model.Order) (string, error) {
 	if len(list) == 0 {
 		return "没有需要撤单的交易", nil
 	}
@@ -294,7 +300,7 @@ func (e *EastMoneyClient) RevokeOrders(list []*model.Order) (string, error) {
 		baseUrl+"/Trade/RevokeOrders?validatekey="+e.validateKey,
 		strings.NewReader(form.Encode()),
 	)
-	resp, err := e.c.Do(req)
+	resp, err := e.cli.Do(req)
 	if err != nil {
 		return "", err
 	}
@@ -305,11 +311,11 @@ func (e *EastMoneyClient) RevokeOrders(list []*model.Order) (string, error) {
 }
 
 // GetStockList 查询当前的持仓情况
-func (e *EastMoneyClient) GetStockList() ([]*model.PositionDetail, error) {
+func (e *eastMoneyClient) GetStockList() ([]*model.PositionDetail, error) {
 	var formData = make(url.Values, 0)
 	formData.Add("qqhs", "10")
 	req, _ := createRequestWithBaseHeader("POST", baseUrl+"/Search/GetStockList", strings.NewReader(formData.Encode()))
-	resp, err := e.c.Do(req)
+	resp, err := e.cli.Do(req)
 	if err != nil {
 		return nil, err
 	}
@@ -327,14 +333,14 @@ func (e *EastMoneyClient) GetStockList() ([]*model.PositionDetail, error) {
 }
 
 // QueryAssetAndPosition 查询账户资产和持仓情况
-func (e *EastMoneyClient) QueryAssetAndPosition() (*model.AccountDetail, error) {
+func (e *eastMoneyClient) QueryAssetAndPosition() (*model.AccountDetail, error) {
 	var form = make(url.Values, 0)
 	form.Add("moneyType", "RMB")
 	req, _ := createRequestWithBaseHeader(
 		"Post",
 		baseUrl+"/Com/queryAssetAndPositionV1?validatekey="+e.validateKey,
 		strings.NewReader(form.Encode()))
-	resp, err := e.c.Do(req)
+	resp, err := e.cli.Do(req)
 	if err != nil {
 		return nil, err
 	}
@@ -361,7 +367,7 @@ func createRequestWithBaseHeader(method string, url string, body io.Reader) (*ht
 	return request, nil
 }
 
-func (e *EastMoneyClient) getSecurityInfo(code string) (string, error) {
+func (e *eastMoneyClient) getSecurityInfo(code string) (string, error) {
 	resp, err := http.Get("http://127.0.0.1:18888/api/verifyUserInfo?" + code)
 	if err != nil {
 		return "", err
@@ -378,8 +384,8 @@ func (e *EastMoneyClient) getSecurityInfo(code string) (string, error) {
 }
 
 // 获取验证码图片, 需要传入一个数字绑定图片
-func (e *EastMoneyClient) getVerifyCode(randNum string) (string, error) {
-	resp, err := e.c.Get(baseUrl + "/Login/YZM?randNum=" + randNum)
+func (e *eastMoneyClient) getVerifyCode(randNum string) (string, error) {
+	resp, err := e.cli.Get(baseUrl + "/Login/YZM?randNum=" + randNum)
 	if err != nil {
 		return "", errors.New(err.Error())
 	}
@@ -400,14 +406,14 @@ func (e *EastMoneyClient) getVerifyCode(randNum string) (string, error) {
 		return "", errors.New("Failed to close writer: " + err.Error())
 	}
 
-	apiURL := fmt.Sprintf("%s/ocr/file", config.GetConfig().OCRHost)
+	apiURL := fmt.Sprintf("%s/ocr/file", e.config.OCRHost)
 	request, err := http.NewRequest("POST", apiURL, requestBody)
 	if err != nil {
 		return "", errors.New("Failed to create request: " + err.Error())
 	}
 	request.Header.Set("Content-Type", writer.FormDataContentType())
 
-	response, err := e.c.Do(request)
+	response, err := e.cli.Do(request)
 	if err != nil {
 		return "", errors.New("Failed to send request: " + err.Error())
 	}

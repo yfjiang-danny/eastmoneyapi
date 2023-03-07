@@ -3,26 +3,15 @@ package config
 import (
 	"sync"
 
+	"github.com/wmo-v/eastmoneyapi/client"
+
 	"github.com/spf13/viper"
 )
 
 var defaultConfigFile = "./configs/config.yaml"
 
 type Config struct {
-	User    UserConfig
-	OCRHost string
-	Mysql   MysqlConfig
-}
-type UserConfig struct {
-	Account  string
-	Password string
-}
-type MysqlConfig struct {
-	Host   string
-	Port   string
-	User   string
-	Passwd string
-	DBName string
+	EastMoneyClientConfig client.EastMoneyClientConfig
 }
 
 var conf *Config

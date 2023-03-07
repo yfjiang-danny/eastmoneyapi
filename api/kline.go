@@ -2,13 +2,14 @@ package api
 
 import (
 	"bytes"
-	"eastmoneyapi/model"
-	"eastmoneyapi/util"
 	"encoding/json"
 	"io"
 	"net/http"
 	"strings"
 	"time"
+
+	"github.com/wmo-v/eastmoneyapi/model"
+	"github.com/wmo-v/eastmoneyapi/util"
 
 	"github.com/shopspring/decimal"
 )

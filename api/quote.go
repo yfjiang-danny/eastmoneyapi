@@ -1,11 +1,12 @@
 package api
 
 import (
-	"eastmoneyapi/model"
-	"eastmoneyapi/util"
 	"encoding/json"
 	"net/http"
 	"time"
+
+	"github.com/wmo-v/eastmoneyapi/model"
+	"github.com/wmo-v/eastmoneyapi/util"
 )
 
 // GetQuote 获取最新的行情数据

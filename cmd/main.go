@@ -1,14 +1,15 @@
 package main
 
 import (
-	"eastmoneyapi/client"
-	"eastmoneyapi/config"
 	"encoding/json"
 	"flag"
 	"fmt"
 	"log"
 	math_rand "math/rand"
 	"time"
+
+	"github.com/wmo-v/eastmoneyapi/client"
+	"github.com/wmo-v/eastmoneyapi/config"
 )
 
 var configPath string
@@ -29,7 +30,7 @@ func main() {
 	// z := service.NewZ513050Svc()
 	// z.Start()
 
-	c := client.NewEastMoneyClient()
+	c := client.NewEastMoneyClient(config.GetConfig().EastMoneyClientConfig)
 
 	go func() {
 		for {
