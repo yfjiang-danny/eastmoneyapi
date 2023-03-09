@@ -32,16 +32,15 @@ func main() {
 
 	c := client.NewEastMoneyClient(config.GetConfig().EastMoneyClientConfig)
 
-	go func() {
-		for {
-			time.Sleep(time.Second * 2)
-			res, err := c.GetStockList()
-			if err != nil {
-				panic(err)
-			}
-			str, _ := json.Marshal(res)
-			fmt.Println(string(str))
-		}
-	}()
-	select {}
+	new, err := c.GetNewStockList()
+	if err != nil {
+		panic(err)
+	}
+
+	res, err := c.SubmitBatTrade(new.GetSubmitBatTradeParams())
+	if err != nil {
+		panic(err)
+	}
+	str, _ := json.Marshal(res)
+	fmt.Println(string(str))
 }
