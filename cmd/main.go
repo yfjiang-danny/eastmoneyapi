@@ -32,7 +32,7 @@ func main() {
 
 	c := client.NewEastMoneyClient(config.GetConfig().EastMoneyClientConfig)
 
-	new, err := c.GetNewStockList()
+	new, err := c.GetCanBuyNewStockList()
 	if err != nil {
 		panic(err)
 	}

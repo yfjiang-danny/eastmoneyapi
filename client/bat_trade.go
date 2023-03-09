@@ -6,23 +6,6 @@ import (
 	"github.com/yzlq99/eastmoneyapi/model"
 )
 
-// GetNewStockList 查询新股列表
-func (e *EastMoneyClient) GetNewStockList() (*model.StockList, error) {
-	req, _ := createRequestWithBaseHeader(
-		"POST",
-		baseUrl+"/Trade/GetNewStockListV3?validatekey="+e.validateKey,
-		nil)
-	resp, err := e.cli.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	result := model.StockList{}
-	if err := bindJson(resp.Body, &result); err != nil {
-		return nil, err
-	}
-	return &result, nil
-}
-
 // GetCanBuyNewStockList 查询可申请新股列表
 func (e *EastMoneyClient) GetCanBuyNewStockList() (*model.StockList, error) {
 	req, _ := createRequestWithBaseHeader(

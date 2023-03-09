@@ -3,7 +3,6 @@ package model
 import (
 	"encoding/json"
 	"strconv"
-	"strings"
 )
 
 type SubmitBatTradeParam struct {
@@ -30,30 +29,8 @@ type SubmitBatTradeResult struct {
 
 /************** 新股 *******************/
 type StockList struct {
-	Kyzj         float64    `json:"Kyzj"`
-	Zjye         string     `json:"Zjye"`
-	NewQuota     []NewQuota `json:"NewQuota"`
-	NewStockList []string   `json:"NewStockList"`
-}
-
-func (s StockList) GetSubmitBatTradeParams() SubmitBatTradeParams {
-	res := SubmitBatTradeParams{}
-	for i := range s.NewStockList {
-		// TODO: 修改参数
-		arr := strings.Split(s.NewStockList[i], ",")
-		// stockCode := arr[1]
-		stockName := arr[2]
-		submitCode := arr[3]
-		res = append(res, SubmitBatTradeParam{
-			StockCode: submitCode,
-			StockName: stockName,
-			// Price:     d.PARVALUE,
-			// Amount:    amount,
-			TradeType: "B",
-			// Market:    d.Market,
-		})
-	}
-	return res
+	NewQuota     []NewQuota     `json:"NewQuota"`
+	NewStockList []NewStockList `json:"NewStockList"`
 }
 
 type NewQuota struct {
@@ -61,6 +38,50 @@ type NewQuota struct {
 	Kcbsged string `json:"Kcbsged"`
 	Ksgsz   string `json:"Ksgsz"`
 	Market  string `json:"Market"`
+}
+
+type NewStockList struct {
+	Market     string      `json:"Market"`
+	Sgrq       string      `json:"Sgrq"`
+	Zqdm       string      `json:"Zqdm"`
+	Zqmc       string      `json:"Zqmc"`
+	Sgdm       string      `json:"Sgdm"`
+	Fxzs       string      `json:"Fxzs"`
+	Wsfxs      string      `json:"Wsfxs"`
+	Fxj        string      `json:"Fxj"`
+	YcFxj      string      `json:"Yc_Fxj"`
+	Sgsx       string      `json:"Sgsx"`
+	YcSgsx     string      `json:"Yc_Sgsx"`
+	Sgzjsx     string      `json:"Sgzjsx"`
+	YcSgzjsx   string      `json:"Yc_Sgzjsx"`
+	Ksgsx      string      `json:"Ksgsx"`
+	SgState    string      `json:"SgState"`
+	MinStep    string      `json:"Min_Step"`
+	CDRFlag    string      `json:"CDR_Flag"`
+	YLFlag     interface{} `json:"YL_Flag"`
+	TPQCYFLag  string      `json:"TPQCY_FLag"`
+	Cybbz      string      `json:"Cybbz"`
+	SFZCZ      string      `json:"SFZCZ"`
+	JYXYJG     string      `json:"JYXYJG"`
+	APPLYPRICE string      `json:"APPLYPRICE"`
+	Zqzwqc     string      `json:"zqzwqc"`
+}
+
+func (s StockList) GetSubmitBatTradeParams() SubmitBatTradeParams {
+	res := SubmitBatTradeParams{}
+	for i := range s.NewStockList {
+		stock := s.NewStockList[i]
+		amount, _ := strconv.Atoi(stock.Ksgsx)
+		res = append(res, SubmitBatTradeParam{
+			StockCode: stock.Sgdm,
+			StockName: stock.Zqmc,
+			Price:     stock.Fxj,
+			Amount:    amount,
+			TradeType: "B",
+			Market:    stock.Market,
+		})
+	}
+	return res
 }
 
 /************** 新债 *******************/
