@@ -5,8 +5,8 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/yzlq99/eastmoneyapi/model"
-	"github.com/yzlq99/eastmoneyapi/util"
+	"github.com/yfjiang-danny/eastmoneyapi/model"
+	"github.com/yfjiang-danny/eastmoneyapi/util"
 )
 
 // GetQuote 获取最新的行情数据

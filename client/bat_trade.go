@@ -3,7 +3,7 @@ package client
 import (
 	"strings"
 
-	"github.com/yzlq99/eastmoneyapi/model"
+	"github.com/yfjiang-danny/eastmoneyapi/model"
 )
 
 // GetCanBuyNewStockList 查询可申请新股列表

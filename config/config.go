@@ -3,7 +3,7 @@ package config
 import (
 	"sync"
 
-	"github.com/yzlq99/eastmoneyapi/client"
+	"github.com/yfjiang-danny/eastmoneyapi/client"
 
 	"github.com/spf13/viper"
 )

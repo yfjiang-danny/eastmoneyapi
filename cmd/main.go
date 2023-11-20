@@ -8,8 +8,8 @@ import (
 	math_rand "math/rand"
 	"time"
 
-	"github.com/yzlq99/eastmoneyapi/client"
-	"github.com/yzlq99/eastmoneyapi/config"
+	"github.com/yfjiang-danny/eastmoneyapi/client"
+	"github.com/yfjiang-danny/eastmoneyapi/config"
 )
 
 var configPath string
