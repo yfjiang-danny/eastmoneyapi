@@ -31,10 +31,11 @@ import (
 	logrus "github.com/sirupsen/logrus"
 )
 
+// 东财网页版
 var baseUrl = "https://jywg.18.cn"
 
 var client *EastMoneyClient
-var intiClientOnce sync.Once
+var initClientOnce sync.Once
 
 type EastMoneyClient struct {
 	cli         *http.Client
@@ -53,7 +54,7 @@ type EastMoneyClientConfig struct {
 }
 
 func NewEastMoneyClient(c EastMoneyClientConfig) *EastMoneyClient {
-	intiClientOnce.Do(func() {
+	initClientOnce.Do(func() {
 		jar, _ := cookiejar.New(nil)
 		client = &EastMoneyClient{
 			cli: &http.Client{

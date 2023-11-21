@@ -25,16 +25,17 @@ func GetMarket(code string) string {
 	panic("暂未支持的证券代码")
 }
 
-func Retry(maxTimes int, fn func() error) error {
+//
+func Retry(numberOfTimes int, fn func() error) error {
 	var err error
-	for count := 0; count < maxTimes; count++ {
+	for count := 0; count < numberOfTimes; count++ {
 		err = fn()
 		if err == nil {
 			return nil
 		}
 		time.Sleep(time.Millisecond * 20 * time.Duration(count))
 	}
-	return fmt.Errorf("重试 %d 后，执行依旧失败，最后一次失败的原因：%s", maxTimes, err.Error())
+	return fmt.Errorf("重试 %d 次后，执行依旧失败，最后一次失败的原因：%s", numberOfTimes, err.Error())
 }
 
 // 上证基金代码以50、51、52开头，

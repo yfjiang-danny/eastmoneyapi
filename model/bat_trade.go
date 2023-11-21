@@ -42,19 +42,19 @@ type NewQuota struct {
 
 type NewStockList struct {
 	Market     string      `json:"Market"`
-	Sgrq       string      `json:"Sgrq"`
-	Zqdm       string      `json:"Zqdm"`
+	Sgrq       string      `json:"Sgrq"` // 申购日期 20231121
+	Zqdm       string      `json:"Zqdm"` // 证券代码
 	Zqmc       string      `json:"Zqmc"`
-	Sgdm       string      `json:"Sgdm"`
+	Sgdm       string      `json:"Sgdm"` // 申购代码
 	Fxzs       string      `json:"Fxzs"`
 	Wsfxs      string      `json:"Wsfxs"`
-	Fxj        string      `json:"Fxj"`
+	Fxj        string      `json:"Fxj"` // 申购价格
 	YcFxj      string      `json:"Yc_Fxj"`
-	Sgsx       string      `json:"Sgsx"`
+	Sgsx       string      `json:"Sgsx"` // 申购最大数量
 	YcSgsx     string      `json:"Yc_Sgsx"`
 	Sgzjsx     string      `json:"Sgzjsx"`
 	YcSgzjsx   string      `json:"Yc_Sgzjsx"`
-	Ksgsx      string      `json:"Ksgsx"`
+	Ksgsx      string      `json:"Ksgsx"` // 可申购数量
 	SgState    string      `json:"SgState"`
 	MinStep    string      `json:"Min_Step"`
 	CDRFlag    string      `json:"CDR_Flag"`
